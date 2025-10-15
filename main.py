@@ -1,29 +1,120 @@
-from conllu import parse_incr
 from utils import download_datasets
+from conllu import parse_incr
+from models.base_model import ModelConfig
+from data.preprocessor import DataPreprocessor, DataPreprocessorConfig
+from trainer.trainer import TrainerConfig, Trainer
+from models.lstm_model import LSTMModel
+from evaluator.evaluator import Evaluator
+import keras
 
-# Download datasets
-dev, train, test = download_datasets()
+def create_config():
+    preprocessor_config = DataPreprocessorConfig(
+        max_sequence_length=100,
+        padding_type="post",
+        truncation_type="post",
+        remove_long_sentences=True,
+    )
 
-# load data
-data_dev = list(parse_incr(open(dev, "r", encoding="utf-8")))
-data_train = list(parse_incr(open(train, "r", encoding="utf-8")))
-data_test = list(parse_incr(open(test, "r", encoding="utf-8")))
+    training_config = TrainerConfig(
+        epochs=25,
+        batch_size=16,
+        early_stopping_patience=10,
+        learning_rate=0.0005,
+        model_dir="saved_models",
+        save_best_only=True,
+    )
 
-# select columns 1 and 4 to keep word and pos tag
-# Ignore multi-word and empty token if decimal -> greater than 0
-def select_columns(data):
-    selected_data = []
-    for sentence in data:
-        selected_sentence = []
-        for token in sentence:
-            if isinstance(token["id"], int) and token["form"].strip() != "":
-                selected_sentence.append((token["form"], token["upostag"]))
-        selected_data.append(selected_sentence)
-    return selected_data
+    model_config = ModelConfig(
+        embedding_dim=200,
+        lstm_units=256,
+        max_sequence_length=100,
+        bidirectional=True,
+        dropout_rate=0.3,
+        training_config=training_config,
+    )
 
-train_data = select_columns(data_train)
-dev_data = select_columns(data_dev)
-test_data = select_columns(data_test)
+    return preprocessor_config, model_config, training_config
 
-print(dev_data[0:2])
-print(train_data[0:2])
+def load_data():
+    dev_path, train_path, test_path = download_datasets()
+
+    dev_data = list(parse_incr(open(dev_path, "r", encoding="utf-8")))
+    train_data = list(parse_incr(open(train_path, "r", encoding="utf-8")))
+    test_data = list(parse_incr(open(test_path, "r", encoding="utf-8")))
+
+    return train_data, dev_data, test_data
+
+def main():
+    # Create configurations
+    print("Creating configurations...\n")
+    preprocessor_config, model_config, training_config = create_config()
+
+    # Load data
+    print("Loading data...\n")
+    train_data, dev_data, test_data = load_data()
+
+    # Initialize preprocessor
+    preprocessor = DataPreprocessor(preprocessor_config)
+
+    # Preprocess data
+    print("Preprocessing data...\n")
+    train_data = preprocessor.select_columns(train_data)
+    dev_data = preprocessor.select_columns(dev_data)
+    test_data = preprocessor.select_columns(test_data)
+
+    print("Separating words and tags...\n")
+    train_sentences, train_tags = preprocessor.separate_words_and_tags(train_data)
+    dev_sentences, dev_tags = preprocessor.separate_words_and_tags(dev_data)
+    test_sentences, test_tags = preprocessor.separate_words_and_tags(test_data)
+
+    print("Creating vocabulary and tag mapping...\n")
+    vocabulary = preprocessor.create_text_vectorizer(train_sentences)
+    tag2idx, idx2tag = preprocessor.create_tag_mapping(train_tags)
+    print(f"Vocabulary size: {len(vocabulary)}")
+    print(f"Number of tags: {len(tag2idx)}\n")
+
+    model_config.vocab_size = len(vocabulary) + 1
+    model_config.num_tags = len(tag2idx) + 1  # +1 for padding
+
+    # Vectorize and pad the data
+    print("Vectorizing and padding data...\n")
+    X_train, y_train = preprocessor.vectorize_pad_data(train_sentences, train_tags)
+    X_dev, y_dev = preprocessor.vectorize_pad_data(dev_sentences, dev_tags)
+    X_test, y_test = preprocessor.vectorize_pad_data(test_sentences, test_tags)
+
+    print("Initializing and building model...\n")
+    # Initialize and build model
+    model = LSTMModel(model_config)
+    model.build_model()
+    model.compile_model()
+
+    print("Model summary:\n")
+    print(model.get_model().summary())
+    # Initialize trainer
+    trainer = Trainer(training_config, model, preprocessor)
+
+    # Train the model
+    print("Training model...\n")
+    trainer.train((X_train, y_train), (X_dev, y_dev))
+    print("Training completed.\n")
+
+    # # Evaluate model
+    # model = keras.models.load_model("saved_models/best_model.h5")
+    # print("Evaluating model...")
+    evaluator = Evaluator(model.get_model(), preprocessor)
+
+    test_metrics = evaluator.evaluate(X_test, y_test, "Test")
+
+    # Create predictor for inference
+    # predictor = Predictor(model.get_model(), preprocessor)
+
+    # # Example prediction
+    # example_sentence = "Google is a nice search engine ."
+    # predicted_tags = predictor.predict_sentence(example_sentence)
+    # print(f"\nExample prediction:")
+    # print(f"Sentence: {example_sentence}")
+    # print(f"Predicted tags: {' '.join(predicted_tags)}")
+
+
+if __name__ == "__main__":
+    main()
