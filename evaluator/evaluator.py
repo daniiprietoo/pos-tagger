@@ -10,11 +10,8 @@ class Evaluator:
         self.model = model
         self.preprocessor = preprocessor
 
-    def evaluate(
-        self, x_data: np.ndarray, y_data: np.ndarray, dataset_name: str = ""
-    ) -> Dict:
-        """Evaluate model performance"""
-        # Get predictions
+    def evaluate(self, x_data, y_data, dataset_name: str = ""):
+
         predictions = self.model.predict(x_data, verbose=0)
         predicted_classes = np.argmax(predictions, axis=-1)
 

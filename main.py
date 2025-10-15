@@ -5,6 +5,7 @@ from data.preprocessor import DataPreprocessor, DataPreprocessorConfig
 from trainer.trainer import TrainerConfig, Trainer
 from models.lstm_model import LSTMModel
 from evaluator.evaluator import Evaluator
+from inference.predictor import Predictor
 import keras
 
 def create_config():
@@ -16,20 +17,20 @@ def create_config():
     )
 
     training_config = TrainerConfig(
-        epochs=25,
-        batch_size=16,
-        early_stopping_patience=10,
-        learning_rate=0.0005,
+        epochs=20,
+        batch_size=128,
+        early_stopping_patience=3,
+        learning_rate=5e-4,
         model_dir="saved_models",
         save_best_only=True,
     )
 
     model_config = ModelConfig(
-        embedding_dim=200,
-        lstm_units=256,
+        embedding_dim=100,
+        lstm_units=64,
         max_sequence_length=100,
         bidirectional=True,
-        dropout_rate=0.3,
+        dropout_rate=0.5,
         training_config=training_config,
     )
 
@@ -52,6 +53,7 @@ def main():
     # Load data
     print("Loading data...\n")
     train_data, dev_data, test_data = load_data()
+
 
     # Initialize preprocessor
     preprocessor = DataPreprocessor(preprocessor_config)
@@ -106,14 +108,14 @@ def main():
     test_metrics = evaluator.evaluate(X_test, y_test, "Test")
 
     # Create predictor for inference
-    # predictor = Predictor(model.get_model(), preprocessor)
+    predictor = Predictor(model.get_model(), preprocessor)
 
-    # # Example prediction
-    # example_sentence = "Google is a nice search engine ."
-    # predicted_tags = predictor.predict_sentence(example_sentence)
-    # print(f"\nExample prediction:")
-    # print(f"Sentence: {example_sentence}")
-    # print(f"Predicted tags: {' '.join(predicted_tags)}")
+    # Example prediction
+    example_sentence = "Google is a nice search engine . Do I like it ? Yes , I am happy to hear more about it ."
+    predicted_tags = predictor.predict_sentence(example_sentence)
+    print(f"\nExample prediction:")
+    print(f"Sentence: {example_sentence}")
+    print(f"Predicted tags: {' '.join(predicted_tags)}")
 
 
 if __name__ == "__main__":

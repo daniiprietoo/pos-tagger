@@ -19,19 +19,26 @@ class DataPreprocessor:
         self.idx2tag = {}
         self.config = config
 
-    def select_columns(self, data):
-        """
-        Select relevant columns from the input data based on the configuration.
-        """
 
-        selected_data = []
+    def select_columns(self, data):
+        """Extract word and upos columns from conllu data, filtering invalid tags"""
+        preprocessed_data = []
+
         for sentence in data:
-            selected_sentence = []
+            sentence_data = []
             for token in sentence:
-                if isinstance(token["id"], int) and token["form"].strip() != "":
-                    selected_sentence.append((token["form"], token["upostag"]))
-            selected_data.append(selected_sentence)
-        return selected_data
+                word = token.get("form", "")
+                tag = token.get("upos", "")
+
+                # Skip tokens with missing or invalid tags
+                if tag and tag != "_" and word and word != "_":
+                    sentence_data.append([word, tag])
+
+            # Only include sentences with at least one valid token
+            if sentence_data:
+                preprocessed_data.append(sentence_data)
+
+        return preprocessed_data
 
     def separate_words_and_tags(self, data):
         """
@@ -76,6 +83,9 @@ class DataPreprocessor:
                 "Text vectorizer not initialized. Call create_text_vectorizer first."
             )
 
+        print(f"Sample sentences: {sentences[:3]}")
+        print(f"Sample tags: {tags[:3]}")
+
         # Vectorize text
         vectorized_text = self.text_vectorizer(sentences)
         padded_text = pad_sequences(
@@ -96,6 +106,9 @@ class DataPreprocessor:
                 truncating=self.config.truncation_type,
             )
 
+        print(f"Sample vectorized sentences shape: {padded_text[:3].shape}")
+        print(f"Sample vectorized tags: {padded_tags[:3]}")
+
         return padded_text, padded_tags
 
     def process_data_to_pad_sequences(self, data, is_train_dataset, model_config: ModelConfig):
@@ -114,3 +127,23 @@ class DataPreprocessor:
         padded_text, padded_tags = self.vectorize_pad_data(sentences, tags)
 
         return padded_text, padded_tags
+
+    def vectorize_single_sentence(self, sentence: str):
+        """
+        Vectorize and pad a single sentence for inference
+        """
+        if self.text_vectorizer is None:
+            raise ValueError(
+                "Text vectorizer not initialized. Call create_text_vectorizer first."
+            )
+
+        vectorized_text = self.text_vectorizer([sentence])
+        padded_text = pad_sequences(
+            vectorized_text,
+            maxlen=self.config.max_sequence_length,
+            padding=self.config.padding_type,
+            truncating=self.config.truncation_type,
+        )
+
+        return padded_text, len(sentence.split())  # Return original length for accurate tag extraction
+    

@@ -1,4 +1,6 @@
 from keras import Sequential
+import tensorflow as tf
+
 from keras.layers import (
     Embedding,
     Bidirectional,
@@ -26,7 +28,7 @@ class LSTMModel(BaseModel):
             Embedding(
                 input_dim=self.config.vocab_size,
                 output_dim=self.config.embedding_dim,
-                input_length=self.config.max_sequence_length,
+                mask_zero=True,
             )
         )
 
@@ -37,6 +39,17 @@ class LSTMModel(BaseModel):
                         units=self.config.lstm_units,
                         return_sequences=True,
                         dropout=self.config.dropout_rate,
+                        recurrent_dropout=0.2,
+                    )
+                )
+            )
+            model.add(
+                Bidirectional(
+                    LSTM(
+                        units=self.config.lstm_units // 2,
+                        return_sequences=True,
+                        dropout=self.config.dropout_rate,
+                        recurrent_dropout=0.2,
                     )
                 )
             )
@@ -49,11 +62,13 @@ class LSTMModel(BaseModel):
                 )
             )
         model.add(Dropout(self.config.dropout_rate))
+        model.add(TimeDistributed(Dense(64, activation="relu")))
+        model.add(Dropout(self.config.dropout_rate))
         model.add(TimeDistributed(Dense(self.config.num_tags, activation="softmax")))
 
         self.model = model
         return self.model
-    
+
     def compile_model(self):
         if self.model is None:
             raise ValueError("Model has not been built yet. Call build_model() first.")
@@ -62,7 +77,7 @@ class LSTMModel(BaseModel):
         self.model.compile(
             optimizer=adam,
             loss="sparse_categorical_crossentropy",
-            metrics=["accuracy"],
+            metrics=[self._masked_accuracy],
         )
 
     def get_model(self) -> Sequential:
@@ -70,3 +85,34 @@ class LSTMModel(BaseModel):
             self.build_model()
             self.compile_model()
         return self.model
+
+    def _masked_accuracy(self, y_true, y_pred):
+        mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
+
+        y_true = tf.cast(y_true, tf.int64)
+        y_pred = tf.argmax(y_pred, axis=-1)
+
+        matches = tf.cast(tf.equal(y_true, y_pred), tf.float32)
+        masked_acc = tf.reduce_sum(matches * mask) / tf.reduce_sum(mask)
+
+        return masked_acc
+
+    def __str__(self):
+        if self.config.bidirectional:
+            direction = "BiLSTM"
+        else:
+            direction = "LSTM"
+
+        # Convert floats to cleaner integer representations
+        dropout_rate_int = int(self.config.dropout_rate * 100)
+        learning_rate_int = int(self.config.training_config.learning_rate * 10000)
+
+        return (
+            f"{direction}_emb{self.config.embedding_dim}"
+            f"_lstm{self.config.lstm_units}"
+            f"_drop{dropout_rate_int}"
+            f"_ep{self.config.training_config.epochs}"
+            f"_bs{self.config.training_config.batch_size}"
+            f"_pat{self.config.training_config.early_stopping_patience}"
+            f"_lr{learning_rate_int}"
+        )
