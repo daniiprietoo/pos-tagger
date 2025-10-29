@@ -46,7 +46,7 @@ class Trainer:
             checkpoint = ModelCheckpoint(
                 filepath=os.path.join(
                     model_dir,
-                    f"{str(self.model)}_vac{{val__masked_accuracy:.3f}}_vl{{val_loss:.2f}}.keras",
+                    f"{str(self.model)}.keras",
                 ),
                 monitor="val_loss",
                 save_best_only=self.config.save_best_only,

@@ -8,25 +8,34 @@ from keras.layers import (
     Dense,
     TimeDistributed,
     Input,
-    Dropout,
 )
 from keras.optimizers import Adam
 from .base_model import BaseModel, ModelConfig
 
+
 class LSTMModel(BaseModel):
 
-    def __init__(self, config: ModelConfig):
+    def __init__(
+        self,
+        config: ModelConfig,
+        vocab_size: int,
+        num_tags: int,
+        max_sequence_length: int,
+    ):
         super().__init__(config)
         self.model = None
+        self.vocab_size = vocab_size
+        self.num_tags = num_tags
+        self.max_sequence_length = max_sequence_length
 
     def build_model(self):
         model = Sequential()
 
-        model.add(Input(shape=(self.config.max_sequence_length,)))
+        model.add(Input(shape=(self.max_sequence_length,)))
 
         model.add(
             Embedding(
-                input_dim=self.config.vocab_size,
+                input_dim=self.vocab_size,
                 output_dim=self.config.embedding_dim,
                 mask_zero=True,
             )
@@ -39,17 +48,6 @@ class LSTMModel(BaseModel):
                         units=self.config.lstm_units,
                         return_sequences=True,
                         dropout=self.config.dropout_rate,
-                        recurrent_dropout=0.2,
-                    )
-                )
-            )
-            model.add(
-                Bidirectional(
-                    LSTM(
-                        units=self.config.lstm_units // 2,
-                        return_sequences=True,
-                        dropout=self.config.dropout_rate,
-                        recurrent_dropout=0.2,
                     )
                 )
             )
@@ -61,10 +59,7 @@ class LSTMModel(BaseModel):
                     dropout=self.config.dropout_rate,
                 )
             )
-        model.add(Dropout(self.config.dropout_rate))
-        model.add(TimeDistributed(Dense(64, activation="relu")))
-        model.add(Dropout(self.config.dropout_rate))
-        model.add(TimeDistributed(Dense(self.config.num_tags, activation="softmax")))
+        model.add(TimeDistributed(Dense(self.num_tags, activation="softmax")))
 
         self.model = model
         return self.model

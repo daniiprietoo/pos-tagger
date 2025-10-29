@@ -1,18 +1,18 @@
 import numpy as np
 from sklearn.metrics import classification_report, accuracy_score
-from typing import Tuple, Dict
-
+from models.base_model import BaseModel
+from data.preprocessor import DataPreprocessor
 
 class Evaluator:
     """Handles model evaluation"""
 
-    def __init__(self, model, preprocessor):
-        self.model = model
+    def __init__(self, model: BaseModel, preprocessor: DataPreprocessor):
+        self.model = model.get_model()
         self.preprocessor = preprocessor
 
     def evaluate(self, x_data, y_data, dataset_name: str = ""):
 
-        predictions = self.model.predict(x_data, verbose=0)
+        predictions = self.model.predict(x_data, verbose='0')
         predicted_classes = np.argmax(predictions, axis=-1)
 
         # Flatten for evaluation (excluding padding)
