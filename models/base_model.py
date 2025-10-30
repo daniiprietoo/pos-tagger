@@ -11,13 +11,14 @@ class ModelConfig:
         lstm_units: int = 128,
         dropout_rate: float = 0.5,
         bidirectional: bool = True,
+        lstm_layers: int = 1
     ) -> None:
         self.embedding_dim: int = embedding_dim
         self.lstm_units: int = lstm_units
         self.dropout_rate: float = dropout_rate
         self.bidirectional: bool = bidirectional
-        self.training_config = training_config
-
+        self.training_config: bool = training_config
+        self.lstm_layers: int = lstm_layers
 
 class BaseModel(ABC):
 

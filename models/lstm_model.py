@@ -11,6 +11,7 @@ from keras.layers import (
 )
 from keras.optimizers import Adam
 from .base_model import BaseModel, ModelConfig
+import keras
 
 
 class LSTMModel(BaseModel):
@@ -51,6 +52,16 @@ class LSTMModel(BaseModel):
                     )
                 )
             )
+            if self.config.lstm_layers == 2:
+                model.add(
+                Bidirectional(
+                    LSTM(
+                        units=self.config.lstm_units // 2,
+                        return_sequences=True,
+                        dropout=self.config.dropout_rate,
+                    )
+                )
+            )
         else:
             model.add(
                 LSTM(
@@ -59,6 +70,14 @@ class LSTMModel(BaseModel):
                     dropout=self.config.dropout_rate,
                 )
             )
+            if self.config.lstm_layers == 2:
+                model.add(
+                    LSTM(
+                        units=self.config.lstm_units // 2,
+                        return_sequences=True,
+                        dropout=self.config.dropout_rate,
+                    )
+                )
         model.add(TimeDistributed(Dense(self.num_tags, activation="softmax")))
 
         self.model = model
@@ -80,7 +99,8 @@ class LSTMModel(BaseModel):
             self.build_model()
             self.compile_model()
         return self.model
-
+        
+    @keras.saving.register_keras_serializable()
     def _masked_accuracy(self, y_true, y_pred):
         mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
 
@@ -98,16 +118,12 @@ class LSTMModel(BaseModel):
         else:
             direction = "LSTM"
 
-        # Convert floats to cleaner integer representations
-        dropout_rate_int = int(self.config.dropout_rate * 100)
-        learning_rate_int = int(self.config.training_config.learning_rate * 10000)
-
+        if self.config.lstm_layers == 2:
+            stacked = "_Stacked"
+        else:
+            stacked = ""
+    
         return (
-            f"{direction}_emb{self.config.embedding_dim}"
-            f"_lstm{self.config.lstm_units}"
-            f"_drop{dropout_rate_int}"
-            f"_ep{self.config.training_config.epochs}"
-            f"_bs{self.config.training_config.batch_size}"
-            f"_pat{self.config.training_config.early_stopping_patience}"
-            f"_lr{learning_rate_int}"
+            f"{direction}{stacked}_Embed{self.config.embedding_dim}"
+            f"_LSTM{self.config.lstm_units}"
         )

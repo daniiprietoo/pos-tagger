@@ -26,7 +26,7 @@ class Trainer:
         self.model = model
         self.preprocessor = preprocessor
 
-    def callbacks(self, model_dir):
+    def callbacks(self, model_dir, language):
         """
         Define the callbacks for training
         """
@@ -46,7 +46,7 @@ class Trainer:
             checkpoint = ModelCheckpoint(
                 filepath=os.path.join(
                     model_dir,
-                    f"{str(self.model)}.keras",
+                    f"{str(self.model)}_{language}.keras",
                 ),
                 monitor="val_loss",
                 save_best_only=self.config.save_best_only,
@@ -56,7 +56,7 @@ class Trainer:
 
         return callbacks
 
-    def train(self, train_data, val_data):
+    def train(self, train_data, val_data, language):
         """
         Train the model
         """
@@ -72,7 +72,7 @@ class Trainer:
             validation_data=(x_val, y_val),
             epochs=self.config.epochs,
             batch_size=self.config.batch_size,
-            callbacks=self.callbacks(self.config.model_dir),
+            callbacks=self.callbacks(self.config.model_dir, language),
         )
 
         return history

@@ -29,8 +29,8 @@ class Evaluator:
         accuracy = accuracy_score(y_true_flat, y_pred_flat)
 
         # Convert indices back to tag names for detailed report
-        y_true_tags = [self.preprocessor.idx2tag.get(idx, "UNK") for idx in y_true_flat]
-        y_pred_tags = [self.preprocessor.idx2tag.get(idx, "UNK") for idx in y_pred_flat]
+        y_true_tags = [self.preprocessor.idx2tag.get(idx, "[UNK]") for idx in y_true_flat]
+        y_pred_tags = [self.preprocessor.idx2tag.get(idx, "[UNK]") for idx in y_pred_flat]
 
         print(f"\n{dataset_name} Set Evaluation:")
         print(f"Accuracy: {accuracy:.4f}")

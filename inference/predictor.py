@@ -17,7 +17,7 @@ class Predictor:
          idx2tag = self.preprocessor.idx2tag
         
          predicted_tags = [
-            idx2tag.get(predicted_classes[0][j], "UNK") # Using UNK for unknown tags
+            idx2tag.get(predicted_classes[0][j], "[UNK]") # Using UNK for unknown tags
             for j in range(original_length)
          ]
 

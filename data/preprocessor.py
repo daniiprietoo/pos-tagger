@@ -96,8 +96,8 @@ class DataPreprocessor:
                 "Text vectorizer not initialized. Call create_text_vectorizer first."
             )
 
-        print(f"Sample sentence: {sentences[0]}")
-        print(f"Sample tags: {tags[0]}")
+        # print(f"Sample sentence: {sentences[0]}")
+        # print(f"Sample tags: {tags[0]}")
 
         # Vectorize text
         vectorized_text = self.text_vectorizer(sentences)
@@ -124,10 +124,10 @@ class DataPreprocessor:
                 truncating=self.config.truncation_type,
             )
 
-        print(f"Sample vectorized sentence shape: {padded_text[0].shape}")
-        print(f"Sample vectorized sentence: {padded_text[0]}")
-        if padded_tags is not None:
-            print(f"Sample vectorized tags: {padded_tags[0]}")
+        # print(f"Sample vectorized sentence shape: {padded_text[0].shape}")
+        # print(f"Sample vectorized sentence: {padded_text[0]}")
+        # if padded_tags is not None:
+            # print(f"Sample vectorized tags: {padded_tags[0]}")
 
         return padded_text, padded_tags
 
