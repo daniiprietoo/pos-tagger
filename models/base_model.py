@@ -17,7 +17,7 @@ class ModelConfig:
         self.lstm_units: int = lstm_units
         self.dropout_rate: float = dropout_rate
         self.bidirectional: bool = bidirectional
-        self.training_config: bool = training_config
+        self.training_config: TrainerConfig = training_config
         self.lstm_layers: int = lstm_layers
 
 class BaseModel(ABC):
