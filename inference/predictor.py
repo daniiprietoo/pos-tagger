@@ -6,7 +6,7 @@ class Predictor:
         self.preprocessor = preprocessor
 
     def predict_sentence(self, sentence: str):
-         """Predict tags for a given sentence in a robust way."""
+         """Predict tags for a given sentence."""
          padded_sequence, original_length = self.preprocessor.vectorize_single_sentence(sentence)
 
          # Get prediction
